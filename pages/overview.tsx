@@ -1,16 +1,20 @@
 import Head from "next/head";
 import { OverviewContent } from "@/components/pages/Overview";
-import { sql } from "@vercel/postgres";
+
 import { useEffect, useState } from "react";
+import prisma from "@/lib/prisma";
+import axios from "axios";
+import { User, UserRelation } from "@prisma/client";
 
 export default function Overview() {
-  const [friends, setFriends] = useState<any[]>([]);
+  const [friends, setFriends] = useState<({ friend: User } & UserRelation)[]>(
+    []
+  );
 
   useEffect(() => {
     const fetchData = async () => {
-      const { rows } =
-        await sql`SELECT * from user_relations where user_id=${1}`;
-      setFriends(rows);
+      const result = await axios.get("/api/get-friends");
+      setFriends(result.data);
     };
     void fetchData();
   }, []);

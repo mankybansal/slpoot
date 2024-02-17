@@ -1,0 +1,68 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL") // uses connection pooling
+  directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+}
+
+model User {
+  id              Int             @id @default(autoincrement())
+  email           String          @unique @db.VarChar(255)
+  firstName       String?         @db.VarChar(100)
+  lastName        String?         @db.VarChar(100)
+  createdOn       DateTime        @default(now()) @map("created_on")
+  userRelations   UserRelation[]  @relation("userRelation")
+  friendRelations UserRelation[]  @relation("friendRelation")
+  expensesPaid    ExpensePaidBy[] @relation("UserExpensePaid")
+  expensesOwed    ExpenseOwedBy[] @relation("UserExpenseOwed")
+}
+
+model UserRelation {
+  id       Int  @id @default(autoincrement())
+  userId   Int
+  friendId Int
+  user     User @relation(name: "userRelation", fields: [userId], references: [id])
+  friend   User @relation(name: "friendRelation", fields: [friendId], references: [id])
+
+  @@unique([userId, friendId], name: "unique_user_friend")
+}
+
+model Expense {
+  id             Int             @id @default(autoincrement())
+  description    String?
+  currency       String          @db.VarChar(3)
+  totalAmount    Int             @map("total_amount") @db.Integer
+  date           DateTime
+  method         String          @db.VarChar(10)
+  expensesPaidBy ExpensePaidBy[] @relation("ExpensePaid")
+  expensesOwedBy ExpenseOwedBy[] @relation("ExpenseOwed")
+}
+
+model ExpensePaidBy {
+  id        Int     @id @default(autoincrement())
+  expenseId Int
+  userId    Int
+  amount    Int     @db.Integer
+  expense   Expense @relation(fields: [expenseId], references: [id], name: "ExpensePaid")
+  user      User    @relation(fields: [userId], references: [id], name: "UserExpensePaid")
+
+  @@index([expenseId], name: "idx_expense_paid_by_expense_id")
+  @@index([userId], name: "idx_expense_paid_by_user_id")
+}
+
+model ExpenseOwedBy {
+  id        Int     @id @default(autoincrement())
+  expenseId Int
+  userId    Int
+  amount    Int     @db.Integer
+  expense   Expense @relation(fields: [expenseId], references: [id], name: "ExpenseOwed")
+  user      User    @relation(fields: [userId], references: [id], name: "UserExpenseOwed")
+
+  @@index([expenseId], name: "idx_expense_owed_by_expense_id")
+  @@index([userId], name: "idx_expense_owed_by_user_id")
+}

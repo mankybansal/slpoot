@@ -3,7 +3,6 @@ import { Controller, FormProvider, useForm } from "react-hook-form";
 import { DateTime } from "luxon";
 import CurrencyInput, { CurrencyInputValues } from "@/components/CurrencyInput";
 import Input from "@/components/Input";
-import { User } from "@/pages/create-expense";
 
 import axios from "axios";
 import { useRouter } from "next/router";
@@ -14,9 +13,10 @@ import { faker } from "@faker-js/faker";
 import { Button, Checkbox } from "@chakra-ui/react";
 import Text from "@/components/Text";
 import { Stubs } from "@/stubs";
+import { User } from "@prisma/client";
 
 export type Split = {
-  userId: string;
+  userId: number;
   amount: number;
   isSelected: boolean;
 };
@@ -244,7 +244,7 @@ export const CreateExpenseContent = ({ users }: Props) => {
                         }}
                       />
                       <Text style={{ width: 400 }} bold>
-                        {usersToIdMap[split.userId].name}
+                        {usersToIdMap[split.userId].firstName}
                       </Text>
                       <CurrencyInput
                         disabled={!split.isSelected}
@@ -314,7 +314,7 @@ export const CreateExpenseContent = ({ users }: Props) => {
                           }
                         />
                         <Text style={{ width: 400 }} bold>
-                          {usersToIdMap[split.userId].name}
+                          {usersToIdMap[split.userId].firstName}
                         </Text>
                         <Text mono>
                           {toRoundCurrencyString(split.amount, currency)}
@@ -335,7 +335,7 @@ export const CreateExpenseContent = ({ users }: Props) => {
                     style={{ marginTop: 8 }}
                   >
                     <Text style={{ width: 400 }} bold>
-                      {usersToIdMap[split.userId].name}
+                      {usersToIdMap[split.userId].firstName}
                     </Text>
                     <CurrencyInput
                       style={{ maxWidth: "100px" }}

@@ -6,13 +6,12 @@ import { User, UserRelation } from "@prisma/client";
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<({ friend: User } & UserRelation)[]>
+  res: NextApiResponse<User | null>
 ) {
   if (req.method === "GET") {
-    const friends = await prisma.userRelation.findMany({
-      where: { userId: 1 },
-      include: { friend: true },
+    const me = await prisma.user.findUnique({
+      where: { id: 1 },
     });
-    return res.status(200).json(friends);
+    return res.status(200).json(me);
   }
 }

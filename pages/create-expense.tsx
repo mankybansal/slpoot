@@ -1,59 +1,42 @@
 import Head from "next/head";
 import { CreateExpenseContent } from "@/components/pages/CreateExpense";
+
+import { useEffect, useState } from "react";
+import { User, UserRelation } from "@prisma/client";
+
+import { useMe } from "@/pages/_app";
+import axios from "axios";
 import { faker } from "@faker-js/faker";
 
-export type User = {
-  id: string;
-  name: string;
-  email: string;
-};
-
-const me = {
-  id: "1",
-  name: "Mayank Bansal",
-  email: "john.doe@sploot.finance",
-};
-
-const otherUsers: User[] = [
-  {
-    id: "2",
-    name: "Aditya Walvekar",
-    email: "a.w@sploot.finance",
-  },
-  {
-    id: "3",
-    name: "Manish Shetty",
-    email: "m.s@sploot.finance",
-  },
-  {
-    id: "4",
-    name: "Ileesha Sharma",
-    email: "i.s@sploot.finance",
-  },
-  {
-    id: "5",
-    name: "Vaishnavi Kulkarni",
-    email: "v.k@sploot.finance",
-  },
-  {
-    id: "6",
-    name: "Aakash Bansal",
-    email: "a.b@sploot.finance",
-  },
-];
-
 export default function CreateExpense() {
-  const users = faker.helpers.arrayElements(
-    otherUsers,
-    Math.random() * otherUsers.length
+  const [loading, setLoading] = useState(true);
+  const [friends, setFriends] = useState<({ friend: User } & UserRelation)[]>(
+    []
   );
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const result = await axios.get("/api/get-friends");
+      setFriends(result.data);
+    };
+    fetchData().then(() => setLoading(false));
+  }, []);
+
+  const { me } = useMe();
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  const users = friends.map(({ friend }) => friend);
+  const selectedUsers = faker.helpers.arrayElements(users);
 
   return (
     <>
       <Head>
         <title>Create New Expense</title>
       </Head>
-      <CreateExpenseContent users={[me, ...users]} />
+      <CreateExpenseContent users={[me, ...selectedUsers]} />
     </>
   );
 }
