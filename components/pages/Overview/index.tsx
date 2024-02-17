@@ -17,9 +17,11 @@ import { DateTime } from "luxon";
 export const OverviewContent = ({
   friends,
   expenses,
+  balance,
 }: {
   friends: ({ friend: User } & UserRelation)[];
   expenses: Expenses;
+  balance: number;
 }) => {
   const router = useRouter();
 
@@ -35,6 +37,8 @@ export const OverviewContent = ({
           <div key={r.id}>{r.friend.firstName}</div>
         ))}
       </Flex>
+
+      <Text my={"32px"}>Balance: {toRoundCurrencyString(balance, "USD")}</Text>
 
       <Flex column mt={"32px"}>
         <Text bold>Expenses</Text>

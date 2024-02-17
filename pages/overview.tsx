@@ -8,6 +8,7 @@ import { User, UserRelation } from "@prisma/client";
 import { Expenses } from "@/pages/api/get-expenses";
 
 export default function Overview() {
+  const [balance, setBalance] = useState<number>(0);
   const [expenses, setExpenses] = useState<Expenses>([]);
   const [friends, setFriends] = useState<({ friend: User } & UserRelation)[]>(
     []
@@ -20,6 +21,9 @@ export default function Overview() {
 
       const expensesResult = await axios.get("/api/get-expenses");
       setExpenses(expensesResult.data);
+
+      const balanceResult = await axios.get("/api/get-balance");
+      setBalance(balanceResult.data);
     };
     void fetchData();
   }, []);
@@ -29,7 +33,11 @@ export default function Overview() {
       <Head>
         <title>Overview</title>
       </Head>
-      <OverviewContent friends={friends} expenses={expenses} />
+      <OverviewContent
+        friends={friends}
+        expenses={expenses}
+        balance={balance}
+      />
     </>
   );
 }
