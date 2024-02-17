@@ -28,9 +28,9 @@ export type CreateExpenseFormData = {
   currency: Currency;
   totalAmount: number | undefined;
   date: string;
-  paidByUserId: string;
+  paidBySplits: Split[];
+  owedBySplits: Split[];
   method: SplitMethod;
-  splits: Split[];
 };
 
 interface Props {
@@ -51,20 +51,23 @@ export const CreateExpenseContent = ({ users }: Props) => {
       currency: "USD",
       totalAmount: 0,
       method: "equal",
-      paidByUserId: users[0].id,
       date: DateTime.now().toISODate(),
-      splits:
-        users?.map((user) => ({
-          userId: user.id,
-          amount: 0,
-          isSelected: true,
-        })) || [],
+      paidBySplits: users.map((user, i) => ({
+        userId: user.id,
+        amount: 0,
+        isSelected: i === 0,
+      })),
+      owedBySplits: users.map((user) => ({
+        userId: user.id,
+        amount: 0,
+        isSelected: true,
+      })),
     },
   });
 
   const { watch, setValue, register, handleSubmit, control } = formMethods;
-  const splits = watch("splits");
-  const paidByUserId = watch("paidByUserId");
+  const owedBySplits = watch("owedBySplits");
+  const paidBySplits = watch("paidBySplits");
 
   const currency = watch("currency");
   const method = watch("method");
@@ -75,24 +78,42 @@ export const CreateExpenseContent = ({ users }: Props) => {
 
   const handleTotalAmountChange = ({ cents }: CurrencyInputValues) => {
     setValue("totalAmount", cents);
+    const selectedPaidBySplits = paidBySplits.filter(
+      (split) => split.isSelected
+    );
+    if (selectedPaidBySplits.length === 1) {
+      setValue(
+        "paidBySplits",
+        paidBySplits.map((split) => ({
+          ...split,
+          amount: split.isSelected ? cents ?? 0 : 0,
+        }))
+      );
+    }
   };
 
   const onSubmit = async (data: CreateExpenseFormData) => {
-    const response = await axios({
-      method: "post",
-      url: "/api/create-expense",
-      data,
-    });
-    if (response.status === 200) {
-      alert("Expense created successfully");
-      console.log(JSON.stringify(response.data));
-      return router.push(routes.overview);
+    try {
+      const response = await axios.post("/api/create-expense", data, {
+        headers: { "Content-Type": "application/json" },
+      });
+      if (response.status === 200) {
+        alert("Expense created successfully.");
+        await router.push(routes.overview);
+      } else {
+        alert("Failed to create expense. Please try again.");
+      }
+    } catch (error) {
+      console.error("There was an error creating the expense:", error);
+      alert("An error occurred while creating the expense.");
     }
   };
 
   const isTallied =
-    splits.reduce((acc, split) => acc + (split.amount ?? 0), 0) ===
-    (totalAmount ?? 0);
+    owedBySplits.reduce((acc, split) => acc + (split.amount ?? 0), 0) ===
+      (totalAmount ?? 0) &&
+    paidBySplits.reduce((acc, split) => acc + (split.amount ?? 0), 0) ===
+      (totalAmount ?? 0);
 
   const fakeIt = () => {
     setValue("description", faker.helpers.arrayElement(Stubs.fakeDescriptions));
@@ -103,7 +124,7 @@ export const CreateExpenseContent = ({ users }: Props) => {
     if (!totalAmount) return;
     switch (method) {
       case "equal": {
-        const selectedSplits = splits.filter((split) => split.isSelected);
+        const selectedSplits = owedBySplits.filter((split) => split.isSelected);
         const splitCount = selectedSplits.length;
 
         if (splitCount === 0) return; // Ensure there's at least one selected split
@@ -111,7 +132,7 @@ export const CreateExpenseContent = ({ users }: Props) => {
         const amountPerPerson = Math.floor(totalAmount / splitCount);
         let remainder = totalAmount - amountPerPerson * splitCount;
 
-        const newSplits = splits.map((split, index) => {
+        const newSplits = owedBySplits.map((split, index) => {
           const extra = remainder > 0 ? 1 : 0;
 
           if (split.isSelected) {
@@ -128,7 +149,8 @@ export const CreateExpenseContent = ({ users }: Props) => {
           }
         });
 
-        setValue("splits", newSplits);
+        setValue("owedBySplits", newSplits);
+
         break;
       }
       case "uneven":
@@ -136,17 +158,49 @@ export const CreateExpenseContent = ({ users }: Props) => {
     }
   };
 
-  const handleSplitSelectionChange = (index: number, isSelected: boolean) => {
-    const newSplits = [...splits];
+  const recalculatePaidBySplits = () => {
+    if (!totalAmount) return;
+    const selectedPaidBySplits = paidBySplits.filter(
+      (split) => split.isSelected
+    );
+    if (selectedPaidBySplits.length === 1) {
+      setValue(
+        "paidBySplits",
+        paidBySplits.map((split) => ({
+          ...split,
+          amount: split.isSelected ? totalAmount ?? 0 : 0,
+        }))
+      );
+    }
+  };
+
+  const handleChangeOwedBySplitSelection = (
+    index: number,
+    isSelected: boolean
+  ) => {
+    const newSplits = [...owedBySplits];
     newSplits[index].isSelected = isSelected;
-    setValue("splits", newSplits, { shouldValidate: true });
+    setValue("owedBySplits", newSplits, { shouldValidate: true });
 
     // Manually trigger recalculation or other side effects as needed
     recalculateSplits();
   };
 
+  const handleChangePaidBySplitSelection = (
+    index: number,
+    isSelected: boolean
+  ) => {
+    const newSplits = [...paidBySplits];
+    newSplits[index].isSelected = isSelected;
+    setValue("paidBySplits", newSplits, { shouldValidate: true });
+
+    // Manually trigger recalculation or other side effects as needed
+    recalculatePaidBySplits();
+  };
+
   useEffect(() => {
     recalculateSplits();
+    recalculatePaidBySplits();
   }, [totalAmount, method]);
 
   return (
@@ -166,8 +220,53 @@ export const CreateExpenseContent = ({ users }: Props) => {
               style={{ marginTop: 8 }}
               onValueChange={handleTotalAmountChange}
             />
-            <Flex>
-              <Text>Paid by: {usersToIdMap[paidByUserId].name}</Text>
+            <Flex column>
+              {paidBySplits.map((split, index) => (
+                <Controller
+                  key={split.userId}
+                  name={`paidBySplits.${index}.isSelected`}
+                  control={control}
+                  render={({ field }) => (
+                    <Flex
+                      key={split.userId}
+                      align={"center"}
+                      justify={"space-between"}
+                      style={{ marginTop: 8 }}
+                    >
+                      <Checkbox
+                        isChecked={split.isSelected}
+                        checked={split.isSelected}
+                        onChange={(e) => {
+                          const isChecked = e.target.checked;
+                          if (!isChecked)
+                            setValue(`paidBySplits.${index}.amount`, 0);
+                          handleChangePaidBySplitSelection(index, isChecked);
+                        }}
+                      />
+                      <Text style={{ width: 400 }} bold>
+                        {usersToIdMap[split.userId].name}
+                      </Text>
+                      <CurrencyInput
+                        disabled={!split.isSelected}
+                        style={{ maxWidth: "100px" }}
+                        value={split.amount}
+                        onValueChange={({ cents }) => {
+                          if (!cents || !totalAmount) return;
+                          setValue(`paidBySplits.${index}.amount`, cents);
+                        }}
+                      />
+                    </Flex>
+                  )}
+                />
+              ))}
+
+              {paidBySplits.filter((split) => split.isSelected).length > 1 && (
+                <RemainingBreakdown
+                  currency={currency}
+                  totalAmount={totalAmount ?? 0}
+                  amount={paidBySplits.reduce((acc, s) => acc + s.amount, 0)}
+                />
+              )}
             </Flex>
             <Flex style={{ marginTop: 16 }}>
               <Button
@@ -181,8 +280,8 @@ export const CreateExpenseContent = ({ users }: Props) => {
                 onClick={() => {
                   setValue("method", "uneven");
                   setValue(
-                    "splits",
-                    splits.map((s) => ({ ...s, amount: 0 }))
+                    "owedBySplits",
+                    owedBySplits.map((s) => ({ ...s, amount: 0 }))
                   );
                 }}
               >
@@ -192,10 +291,10 @@ export const CreateExpenseContent = ({ users }: Props) => {
 
             {method === "equal" && (
               <Flex column>
-                {splits.map((split, index) => (
+                {owedBySplits.map((split, index) => (
                   <Controller
                     key={split.userId}
-                    name={`splits.${index}.isSelected`}
+                    name={`owedBySplits.${index}.isSelected`}
                     control={control}
                     render={({ field }) => (
                       <Flex
@@ -208,7 +307,10 @@ export const CreateExpenseContent = ({ users }: Props) => {
                           isChecked={split.isSelected}
                           checked={split.isSelected}
                           onChange={(e) =>
-                            handleSplitSelectionChange(index, e.target.checked)
+                            handleChangeOwedBySplitSelection(
+                              index,
+                              e.target.checked
+                            )
                           }
                         />
                         <Text style={{ width: 400 }} bold>
@@ -226,7 +328,7 @@ export const CreateExpenseContent = ({ users }: Props) => {
 
             {method === "uneven" && (
               <Flex column>
-                {splits.map((split, index) => (
+                {owedBySplits.map((split, index) => (
                   <Flex
                     key={split.userId}
                     align={"center"}
@@ -240,28 +342,16 @@ export const CreateExpenseContent = ({ users }: Props) => {
                       value={split.amount}
                       onValueChange={({ cents }) => {
                         if (!cents || !totalAmount) return;
-                        setValue(`splits.${index}.amount`, cents);
+                        setValue(`owedBySplits.${index}.amount`, cents);
                       }}
                     />
                   </Flex>
                 ))}
-                <Flex column align={"center"} justify={"center"} mt={"32px"}>
-                  <Text fontSize={"md"} bold>
-                    {toRoundCurrencyString(
-                      splits.reduce((acc, s) => acc + s.amount, 0),
-                      currency
-                    )}{" "}
-                    of {toRoundCurrencyString(totalAmount, currency)}
-                  </Text>
-                  <Text fontSize={"sm"}>
-                    {toRoundCurrencyString(
-                      (totalAmount ?? 0) -
-                        splits.reduce((acc, s) => acc + s.amount, 0),
-                      currency
-                    )}{" "}
-                    remaining
-                  </Text>
-                </Flex>
+                <RemainingBreakdown
+                  currency={currency}
+                  totalAmount={totalAmount ?? 0}
+                  amount={owedBySplits.reduce((acc, s) => acc + s.amount, 0)}
+                />
               </Flex>
             )}
 
@@ -288,3 +378,25 @@ export const CreateExpenseContent = ({ users }: Props) => {
     </FormProvider>
   );
 };
+
+interface RemainingBreakdownProps {
+  amount: number;
+  totalAmount: number;
+  currency: Currency;
+}
+
+const RemainingBreakdown = ({
+  amount,
+  totalAmount,
+  currency,
+}: RemainingBreakdownProps) => (
+  <Flex column align={"center"} justify={"center"} mt={"32px"}>
+    <Text fontSize={"md"} bold>
+      {toRoundCurrencyString(amount, currency)} of{" "}
+      {toRoundCurrencyString(totalAmount, currency)}
+    </Text>
+    <Text fontSize={"sm"}>
+      {toRoundCurrencyString(totalAmount - amount, currency)} remaining
+    </Text>
+  </Flex>
+);

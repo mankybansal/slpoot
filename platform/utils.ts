@@ -13,7 +13,5 @@ export const toRoundCurrencyString = (
   });
   const value = amount ?? 0;
   const ret = currencyFormatter.format(value / 100);
-
-  console.log(ret, value);
   return includeSign && value ? `+${ret}` : ret;
 };

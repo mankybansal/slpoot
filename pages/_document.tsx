@@ -42,11 +42,9 @@ const GlobalStyles = css`
 
   html {
     height: 100%;
-    padding: 48px;
   }
 
   body {
-    height: 100%;
     padding: 24px;
     overflow-y: auto;
     box-shadow: 0 0 10px 10px rgba(0, 0, 0, 0.05);

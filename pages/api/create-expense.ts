@@ -1,13 +1,21 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from "next";
+import { CreateExpenseFormData } from "@/components/pages/CreateExpense";
 
 type Data = {
-  name: string;
+  success: boolean;
 };
+
+
 
 export default function handler(
   req: NextApiRequest,
-  res: NextApiResponse<Data>,
+  res: NextApiResponse<Data>
 ) {
-  res.status(200).json({ name: "John Doe" });
+  if (req.method === "POST") {
+    const data: CreateExpenseFormData = req.body;
+    console.log(data);
+    return res.status(200).json({ success: true });
+  }
+  res.status(400).json({ success: true });
 }
