@@ -15,13 +15,9 @@ export default async function handler(
   if (req.method === "POST") {
     const data: CreateExpenseFormData = req.body;
 
-    console.log("here");
-
     if (!data.totalAmount) {
       return res.status(400).json({ success: false });
     }
-
-    console.log("here");
 
     const expense = await prisma.expense.create({
       data: {
