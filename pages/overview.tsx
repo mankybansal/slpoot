@@ -2,19 +2,24 @@ import Head from "next/head";
 import { OverviewContent } from "@/components/pages/Overview";
 
 import { useEffect, useState } from "react";
-import prisma from "@/lib/prisma";
+
 import axios from "axios";
 import { User, UserRelation } from "@prisma/client";
+import { Expenses } from "@/pages/api/get-expenses";
 
 export default function Overview() {
+  const [expenses, setExpenses] = useState<Expenses>([]);
   const [friends, setFriends] = useState<({ friend: User } & UserRelation)[]>(
     []
   );
 
   useEffect(() => {
     const fetchData = async () => {
-      const result = await axios.get("/api/get-friends");
-      setFriends(result.data);
+      const friendsResult = await axios.get("/api/get-friends");
+      setFriends(friendsResult.data);
+
+      const expensesResult = await axios.get("/api/get-expenses");
+      setExpenses(expensesResult.data);
     };
     void fetchData();
   }, []);
@@ -24,7 +29,7 @@ export default function Overview() {
       <Head>
         <title>Overview</title>
       </Head>
-      <OverviewContent friends={friends} />
+      <OverviewContent friends={friends} expenses={expenses} />
     </>
   );
 }

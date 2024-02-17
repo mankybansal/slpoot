@@ -11,4 +11,10 @@ if (process.env.NODE_ENV === "production") {
   prisma = global.prisma;
 }
 
+// Ensure `prisma` is available globally for TypeScript
+// This is especially useful if you're using TypeScript, but optional in plain JavaScript
+declare global {
+  var prisma: PrismaClient | undefined;
+}
+
 export default prisma;

@@ -1,20 +1,31 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from "next";
-import { CreateExpenseFormData } from "@/components/pages/CreateExpense";
 
-export type Ledger = CreateExpenseFormData[];
+import prisma from "@/lib/prisma";
+import { Expense, ExpenseOwedBy, ExpensePaidBy } from "@prisma/client";
 
-const getLocalStorageLedger = () => {
-  const ledger = localStorage.getItem("ledger");
-  return ledger ? JSON.parse(ledger) : [];
-};
+export type Expenses = ({
+  expensesPaidBy: ExpensePaidBy[];
+  expensesOwedBy: ExpenseOwedBy[];
+} & Expense)[];
 
-export default function handler(
+export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<Ledger>
+  res: NextApiResponse<Expenses>
 ) {
   if (req.method === "GET") {
-    const ledger = getLocalStorageLedger();
-    return res.status(200).json(ledger);
+    try {
+      const expenses = await prisma.expense.findMany({
+        where: { userId: 1 },
+        include: {
+          expensesPaidBy: true,
+          expensesOwedBy: true,
+        },
+      });
+
+      return res.status(200).json(expenses);
+    } catch (error) {
+      return res.status(200).json([]);
+    }
   }
 }

@@ -20,6 +20,7 @@ model User {
   friendRelations UserRelation[]  @relation("friendRelation")
   expensesPaid    ExpensePaidBy[] @relation("UserExpensePaid")
   expensesOwed    ExpenseOwedBy[] @relation("UserExpenseOwed")
+  expenses        Expense[]       @relation("UserExpensePaid")
 }
 
 model UserRelation {
@@ -37,8 +38,10 @@ model Expense {
   description    String?
   currency       String          @db.VarChar(3)
   totalAmount    Int             @map("total_amount") @db.Integer
-  date           DateTime
+  date           String
+  userId         Int
   method         String          @db.VarChar(10)
+  user           User            @relation(fields: [userId], references: [id], name: "UserExpensePaid")
   expensesPaidBy ExpensePaidBy[] @relation("ExpensePaid")
   expensesOwedBy ExpenseOwedBy[] @relation("ExpenseOwed")
 }
