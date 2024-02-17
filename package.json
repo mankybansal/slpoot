@@ -9,13 +9,19 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@chakra-ui/cli": "^2.4.1",
+    "@chakra-ui/react": "^2.8.2",
+    "@emotion/react": "^11",
     "@emotion/styled": "^11",
     "@faker-js/faker": "^7.5.0",
-    "@emotion/react": "^11",
+    "axios": "^1.6.7",
+    "framer-motion": "^11.0.5",
     "luxon": "3.4.3",
     "next": "14.1.0",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "react-hook-form": "^7.50.1",
+    "react-number-format": "^5.3.1"
   },
   "devDependencies": {
     "@types/luxon": "^2.0.2",
