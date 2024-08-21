@@ -18,11 +18,18 @@ export default async function handler(
       const expenses = await prisma.expense.findMany({
         where: { userId: 1 },
         include: {
-          expensesPaidBy: true,
-          expensesOwedBy: true,
+          expensesPaidBy: {
+            include: {
+              user: true,
+            },
+          },
+          expensesOwedBy: {
+            include: {
+              user: true,
+            },
+          },
         },
       });
-
       return res.status(200).json(expenses);
     } catch (error) {
       return res.status(200).json([]);

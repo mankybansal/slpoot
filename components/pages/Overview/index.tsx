@@ -13,6 +13,7 @@ import {
 import { Expenses } from "@/pages/api/get-expenses";
 import { Currency, toRoundCurrencyString } from "@/platform/utils";
 import { DateTime } from "luxon";
+import { useMe } from "@/pages/_app";
 
 export const OverviewContent = ({
   friends,
@@ -23,10 +24,11 @@ export const OverviewContent = ({
   expenses: Expenses;
   balance: number;
 }) => {
+  const { me } = useMe();
   const router = useRouter();
 
   return (
-    <Flex column>
+    <Flex column maxW={"800px"}>
       <Button onClick={() => router.push(routes.createExpense)}>
         Create expense
       </Button>
@@ -40,7 +42,7 @@ export const OverviewContent = ({
 
       <Text my={"32px"}>Balance: {toRoundCurrencyString(balance, "USD")}</Text>
 
-      <Flex column mt={"32px"}>
+      <Flex column my={"32px"}>
         <Text bold>Expenses</Text>
         {expenses.map(
           (
@@ -48,26 +50,40 @@ export const OverviewContent = ({
               expensesPaidBy: ExpensePaidBy[];
               expensesOwedBy: ExpenseOwedBy[];
             } & Expense
-          ) => (
-            <Flex
-              column
-              key={r.id}
-              maxW={"400px"}
-              flex={1}
-              mt={"8px"}
-              bg={"#eee"}
-              p={"16px"}
-            >
-              <Flex justify={"space-between"}>
-                <Text>{r.description}</Text>
-                <Text bold>
-                  {toRoundCurrencyString(r.totalAmount, r.currency as Currency)}
-                </Text>
+          ) => {
+            const paidBy = r.expensesPaidBy.filter((epb) => epb.amount > 0);
+            const paidByNames = paidBy
+              .map((pb) => (pb.userId === me.id ? "You" : pb.user.firstName))
+              .join(", ");
+            return (
+              <Flex
+                key={r.id}
+                align={"center"}
+                borderTop={"1px solid #eee"}
+                _last={{ borderBottom: "1px solid #eee" }}
+              >
+                <Text>{DateTime.fromISO(r.date).toFormat("MMM dd")}</Text>
+                <Flex column maxW={"400px"} flex={1} ml={"8px"} p={"16px"}>
+                  <Flex justify={"space-between"}>
+                    <Text>{r.description}</Text>
+                    <Text bold></Text>
+                  </Flex>
+                  <Flex>
+                    <Text bold mr={"4px"}>
+                      {paidByNames}
+                    </Text>{" "}
+                    paid
+                    <Text ml={"4px"} bold>
+                      {toRoundCurrencyString(
+                        r.totalAmount,
+                        r.currency as Currency
+                      )}
+                    </Text>
+                  </Flex>
+                </Flex>
               </Flex>
-              <Text>{DateTime.fromISO(r.date).toFormat("MM/dd/yyyy")}</Text>
-              Involved: {r.expensesOwedBy.map((o) => o.userId).join(", ")}
-            </Flex>
-          )
+            );
+          }
         )}
       </Flex>
     </Flex>
