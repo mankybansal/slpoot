@@ -30,8 +30,6 @@ export default async function handler(
       },
     });
 
-    console.log("here");
-
     await Promise.all(
       data.paidBySplits.map((split) =>
         prisma.expensePaidBy.create({
